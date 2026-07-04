@@ -1,0 +1,15 @@
+export const Fonts = {
+  GilroyRegular: require("./gilroy-regular.ttf"),
+  GilroySemiBold: require("./Gilroy-SemiBold.ttf"),
+  JosefinSansRegular: require("./JosefinSans-Regular.ttf"),
+  JosefinSansMedium: require("./JosefinSans-Medium.ttf"),
+  JosefinSansSemiBold: require("./JosefinSans-SemiBold.ttf"),
+  JosefinSansBold: require("./JosefinSans-Bold.ttf"),
+  JosefinSansItalic: require("./JosefinSans-Italic.ttf"),
+  JosefinSansMediumItalic: require("./JosefinSans-MediumItalic.ttf"),
+  JosefinSansSemiBoldItalic: require("./JosefinSans-SemiBoldItalic.ttf"),
+  JosefinSansBoldItalic: require("./JosefinSans-BoldItalic.ttf"),
+  PoppinsMedium: require("./Poppins-Medium.ttf"),
+  PoppinsRegular: require("./Poppins-Regular.ttf"),
+  PoppinsSemiBold: require("./Poppins-SemiBold.ttf"),
+};
