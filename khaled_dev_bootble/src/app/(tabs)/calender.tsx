@@ -9,7 +9,7 @@ const calender = () => {
     <GradientBackground>
       <SafeAreaView edges={["top"]} className="flex-1">
         <View className="flex-1 px-[5%]">
-          <ScrollView className="flex-1">
+          <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
             <Text className="text-center font-JosefinSansSemiBold text-2xl text-[#FFFFFF]">
               Calendar
             </Text>

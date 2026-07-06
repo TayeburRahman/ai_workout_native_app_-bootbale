@@ -7,7 +7,7 @@ import {
 } from "@reduxjs/toolkit/query/react";
 import * as SecureStore from "expo-secure-store";
 
-const BASE_URL = "http://10.10.28.71:5008/api/";
+const BASE_URL = "http://10.10.28.85:5008/api/";
 // const BASE_URL = "https://apiv2.bootble.com/api/";
 
 // "http://10.10.20.17:5000/api/";

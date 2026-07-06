@@ -1,14 +1,24 @@
 import { clock } from "@/assets/icon";
-import responsive from "@/src/utils/responsive";
-import { LinearGradient } from "expo-linear-gradient";
-import React, { useState } from "react";
-import { Text, View, TouchableOpacity, Modal, TextInput, Alert } from "react-native";
-import { SvgXml } from "react-native-svg";
-import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import { useSelector } from "react-redux";
+import {
+  useCompleteEventMutation,
+  useRescheduleEventMutation,
+} from "@/src/redux/page/calenderApi";
 import { RootState } from "@/src/redux/store";
-import { useCompleteEventMutation, useRescheduleEventMutation } from "@/src/redux/page/calenderApi";
+import responsive from "@/src/utils/responsive";
+import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
+import React, { useState } from "react";
+import {
+  Alert,
+  Modal,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { SvgXml } from "react-native-svg";
+import { useSelector } from "react-redux";
 
 export interface WorkoutItem {
   id: string;
@@ -16,7 +26,15 @@ export interface WorkoutItem {
   time: string;
   title: string;
   subtitle: string;
-  status: "suggested" | "completed" | "done" | "logged" | "expired" | "missed" | "downgraded" | "rescheduled";
+  status:
+    | "suggested"
+    | "completed"
+    | "done"
+    | "logged"
+    | "expired"
+    | "missed"
+    | "downgraded"
+    | "rescheduled";
   isRecommended?: boolean;
 }
 
@@ -26,22 +44,33 @@ interface Props {
 
 const DailyWorkOut: React.FC<Props> = ({ item }) => {
   const router = useRouter();
-  const datefilter = useSelector((state: RootState) => state.global.global.datefilter);
-  
-  const [completeEvent, { isLoading: isCompleting }] = useCompleteEventMutation();
-  const [rescheduleEvent, { isLoading: isRescheduling }] = useRescheduleEventMutation();
+  const datefilter = useSelector(
+    (state: RootState) => state.global.global.datefilter,
+  );
+
+  const [completeEvent, { isLoading: isCompleting }] =
+    useCompleteEventMutation();
+  const [rescheduleEvent, { isLoading: isRescheduling }] =
+    useRescheduleEventMutation();
 
   const [showReschedule, setShowReschedule] = useState(false);
   const [newTime, setNewTime] = useState(item.time);
 
   // Status mapping to colors and styling
-  const isCompleted = item.status === "completed" || item.status === "done" || item.status === "logged";
+  const isCompleted =
+    item.status === "completed" ||
+    item.status === "done" ||
+    item.status === "logged";
   const isDowngraded = item.status === "downgraded";
   const isMissed = item.status === "missed" || item.status === "expired";
-  const isSuggested = item.status === "suggested" || item.status === "rescheduled";
+  const isSuggested =
+    item.status === "suggested" || item.status === "rescheduled";
 
   let indicatorColor = "#A895FF";
-  let gradientColors: readonly [string, string, ...string[]] = ["#A895FF1C", "#FFFFFF0A"];
+  let gradientColors: readonly [string, string, ...string[]] = [
+    "#A895FF1C",
+    "#FFFFFF0A",
+  ];
   let timeColor = "text-[#A895FF]";
 
   if (isCompleted) {
@@ -110,14 +139,19 @@ const DailyWorkOut: React.FC<Props> = ({ item }) => {
         end={{ x: 0.3, y: 1 }}
         style={{
           width: "100%",
-          minHeight: responsive.verticalScale(94),
+          height: responsive.verticalScale(94),
+
           borderRadius: 16,
           overflow: "hidden",
           paddingTop: 12,
           paddingBottom: 12,
           marginBottom: 12,
           borderWidth: 1,
-          borderColor: isCompleted ? "#10B98133" : isDowngraded ? "#F5A52433" : "#FFFFFF1A",
+          borderColor: isCompleted
+            ? "#10B98133"
+            : isDowngraded
+              ? "#F5A52433"
+              : "#FFFFFF1A",
         }}
       >
         <View className="flex-row items-center w-full h-full px-1">
@@ -142,7 +176,7 @@ const DailyWorkOut: React.FC<Props> = ({ item }) => {
               >
                 {item.title}
               </Text>
-              
+
               {/* Badges */}
               {isDowngraded && (
                 <View className="bg-[#F5A5241F] px-2 py-0.5 rounded-full ml-2">
@@ -158,18 +192,29 @@ const DailyWorkOut: React.FC<Props> = ({ item }) => {
                   </Text>
                 </View>
               )}
-              {item.isRecommended && !isCompleted && !isDowngraded && !isMissed && (
-                <View className="bg-[#A895FF1F] px-2 py-0.5 rounded-full ml-2">
-                  <Text className="text-[#A895FF] text-[10px] font-JosefinSansBold">
-                    Recommended
-                  </Text>
-                </View>
-              )}
+              {item.isRecommended &&
+                !isCompleted &&
+                !isDowngraded &&
+                !isMissed && (
+                  <View className="bg-[#A895FF1F] px-2 py-0.5 rounded-full ml-2">
+                    <Text className="text-[#A895FF] text-[10px] font-JosefinSansBold">
+                      Recommended
+                    </Text>
+                  </View>
+                )}
             </View>
 
             <View className="flex-row items-center mt-1">
-              <SvgXml xml={clock} width={12} height={12} color={indicatorColor} />
-              <Text className="text-[#FFFFFFB2] text-xs font-JosefinSansMedium ml-1 flex-1" numberOfLines={1}>
+              <SvgXml
+                xml={clock}
+                width={12}
+                height={12}
+                color={indicatorColor}
+              />
+              <Text
+                className="text-[#FFFFFFB2] text-xs font-JosefinSansMedium ml-1 flex-1"
+                numberOfLines={1}
+              >
                 {item.subtitle}
               </Text>
             </View>
@@ -188,7 +233,11 @@ const DailyWorkOut: React.FC<Props> = ({ item }) => {
                       ? "Log Meal Details"
                       : "Start Recovery Session"}
                 </Text>
-                <Ionicons name="arrow-forward-outline" size={12} color="#A895FF" />
+                <Ionicons
+                  name="arrow-forward-outline"
+                  size={12}
+                  color="#A895FF"
+                />
               </TouchableOpacity>
             )}
           </View>
@@ -218,9 +267,17 @@ const DailyWorkOut: React.FC<Props> = ({ item }) => {
               activeOpacity={0.7}
             >
               <Ionicons
-                name={isCompleted ? "checkmark-circle" : isMissed ? "close-circle-outline" : "ellipse-outline"}
+                name={
+                  isCompleted
+                    ? "checkmark-circle"
+                    : isMissed
+                      ? "close-circle-outline"
+                      : "ellipse-outline"
+                }
                 size={20}
-                color={isCompleted ? "#10B981" : isMissed ? "#EF4444" : "#FFFFFF60"}
+                color={
+                  isCompleted ? "#10B981" : isMissed ? "#EF4444" : "#FFFFFF60"
+                }
               />
             </TouchableOpacity>
           </View>
@@ -254,7 +311,9 @@ const DailyWorkOut: React.FC<Props> = ({ item }) => {
                 onPress={() => setShowReschedule(false)}
                 className="flex-1 bg-[#FFFFFF0A] border border-[#FFFFFF1A] py-3 rounded-2xl items-center"
               >
-                <Text className="text-white font-JosefinSansSemiBold">Cancel</Text>
+                <Text className="text-white font-JosefinSansSemiBold">
+                  Cancel
+                </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
