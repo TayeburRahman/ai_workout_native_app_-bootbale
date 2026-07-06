@@ -429,6 +429,115 @@ class CalendarService {
         }
       }
 
+      // Dynamically orchestrate recommendations if off-shift day
+      if (filter === 'off_shift' && dayType !== 'work') {
+        const isToday = queryDate.toDateString() === new Date().toDateString();
+        const now = new Date();
+        const nowStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+        const nowMinutes = now.getHours() * 60 + now.getMinutes();
+
+        // 1. Morning Reset (09:00)
+        const t1Str = '09:00';
+        const t1Min = this.timeToMinutes(t1Str);
+        let t1Status = 'suggested';
+        if (isToday && nowMinutes > t1Min + 60) {
+          t1Status = 'missed';
+        }
+        events.push({
+          id: 'rec_offshift_morning_reset',
+          type: 'recovery',
+          time: t1Str,
+          title: 'Morning Reset & Mobility',
+          subtitle: 'Light stretching to wake up the body',
+          status: t1Status,
+          isRecommended: true,
+          data: {}
+        });
+
+        // 2. Nutritional Reset (13:00)
+        const t2Str = '13:00';
+        const t2Min = this.timeToMinutes(t2Str);
+        let t2Status = 'suggested';
+        if (isToday && nowMinutes > t2Min + 60) {
+          t2Status = 'missed';
+        }
+        events.push({
+          id: 'rec_offshift_nutrition_prep',
+          type: 'meal',
+          time: t2Str,
+          title: 'Nutritional Reset & Hydration',
+          subtitle: 'Focus on balanced macros and meal prep for the week',
+          status: t2Status,
+          isRecommended: true,
+          data: { mealType: 'lunch' }
+        });
+
+        // 3. Main Activity (16:00) - based on readiness
+        const t3Str = '16:00';
+        const t3Min = this.timeToMinutes(t3Str);
+        let t3Status = 'suggested';
+        let t3Time = t3Str;
+        let t3Type = readiness >= 75 ? 'workout' : 'recovery';
+        let t3Title = readiness >= 75 ? 'Zone 2 Cardio / Active Recovery' : 'Deep Recovery Yoga';
+        let t3Subtitle = readiness >= 75 
+          ? 'Maintain conditioning without high CNS fatigue'
+          : 'Prioritize healing • Low intensity stretch flow';
+
+        if (isToday && nowMinutes > t3Min + 60) {
+          t3Status = 'downgraded';
+          t3Type = 'recovery';
+          t3Title = 'Evening Restorative Stretch';
+          t3Subtitle = 'Pushed from afternoon • Gentle nervous system reset';
+          t3Time = this.addMinutesToTime(nowStr, 10);
+        }
+
+        events.push({
+          id: 'rec_offshift_main_activity',
+          type: t3Type,
+          time: t3Time,
+          title: t3Title,
+          subtitle: t3Subtitle,
+          status: t3Status,
+          isRecommended: true,
+          data: {}
+        });
+
+        // ACTION PIPELINE: Issue proactive reminder if within 1 hour
+        if (isToday && t3Status === 'suggested' && t3Type === 'recovery' && (t3Min - nowMinutes) <= 60 && (t3Min - nowMinutes) >= 0) {
+          WellnessEngine.recordEvent({
+            userId,
+            type: 'SLEEP_RECOVERY',
+            category: 'sleep',
+            title: `Upcoming: ${t3Title}`,
+            message: t3Subtitle,
+            sourceModule: 'calendar',
+            sourceId: 'rec_offshift_main_activity',
+            deepLink: '/sleeprecovery',
+            priority: 'MEDIUM',
+            dedupeKey: `sleep_reminder:main_activity:${queryDate.toISOString().slice(0, 10)}`,
+            payload: {},
+          }).catch(() => {});
+        }
+
+        // 4. Sleep Prep (21:00)
+        const t4Str = '21:00';
+        const t4Min = this.timeToMinutes(t4Str);
+        let t4Status = 'suggested';
+        if (isToday && nowMinutes > t4Min + 60) {
+          t4Status = 'missed';
+        }
+        events.push({
+          id: 'rec_offshift_sleep_prep',
+          type: 'recovery',
+          time: t4Str,
+          title: 'Sleep Prep & Wind Down',
+          subtitle: 'Disconnect from screens • Deep breathing',
+          status: t4Status,
+          isRecommended: true,
+          data: {}
+        });
+      }
+
       // Apply filters
       let filteredEvents = events;
       if (filter === 'shift_cycle') {
@@ -443,7 +552,7 @@ class CalendarService {
       } else if (filter === 'off_shift') {
         filteredEvents = events.filter(
           event =>
-            !event.isRecommended &&
+            event.isRecommended ||
             (event.type === 'recovery' ||
               (event.type === 'meal' && !['pre_workout', 'post_workout'].includes(event.data.mealType))),
         );

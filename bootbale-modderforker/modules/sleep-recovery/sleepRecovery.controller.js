@@ -28,7 +28,7 @@ class SleepRecoveryController {
    */
   static async logActivity(req, res, next) {
     try {
-      const { activityKey, startTime, endTime, quality, notes, energyBefore, energyAfter } = req.body;
+      const { activityKey, startTime, endTime, quality, notes, energyBefore, energyAfter, splitSleep, interruptedSleep, shiftContext } = req.body;
 
       if (!activityKey || !startTime || !endTime) {
         return res.status(400).json({
@@ -45,30 +45,50 @@ class SleepRecoveryController {
         notes,
         energyBefore,
         energyAfter,
+        splitSleep,
+        interruptedSleep,
+        shiftContext,
       });
 
       try {
-        await WellnessEngine.recordEvent({
+        const Notification = require('../notification/notification.model');
+        const NotificationService = require('../notification/notification.service');
+
+        // Find existing active reminders for sleep/recovery and mark them resolved
+        const startOfDay = new Date();
+        startOfDay.setHours(0, 0, 0, 0);
+
+        const activeReminders = await Notification.find({
           userId: req.user.id,
           type: 'SLEEP_RECOVERY',
-          category: 'sleep',
-          title:
-            activityKey === 'nap' || activityKey === 'night_sleep' ? 'Sleep logged' : 'Recovery completed',
-          message:
-            activityKey === 'nap' || activityKey === 'night_sleep'
-              ? `You logged ${sleepLog.durationMinutes} minutes of sleep.`
-              : `Great job completing your ${activityKey} session!`,
-          sourceModule: 'sleep-recovery',
-          sourceId: sleepLog._id.toString(),
-          deepLink: '/sleeprecovery',
-          priority: quality === 'poor' ? 'HIGH' : 'LOW',
-          dedupeKey: `sleep:${sleepLog.activityKey}:${sleepLog.date.toISOString().slice(0, 10)}`,
-          payload: {
-            activityKey,
-            durationMinutes: sleepLog.durationMinutes,
-            quality: sleepLog.quality,
-          },
+          lifecycleState: 'active',
+          createdAt: { $gte: startOfDay }
         });
+
+        for (const reminder of activeReminders) {
+           await NotificationService.markAsRead(reminder._id, req.user.id);
+        }
+
+        // Only create a new active notification if quality is poor (follow-up recommendation)
+        if (quality === 'poor') {
+          await WellnessEngine.recordEvent({
+            userId: req.user.id,
+            type: 'SLEEP_RECOVERY',
+            category: 'sleep',
+            title: 'Recovery Follow-up',
+            message: `Your ${activityKey} session was logged as poor quality. We recommend prioritizing deep sleep tonight.`,
+            sourceModule: 'sleep-recovery',
+            sourceId: sleepLog._id.toString(),
+            deepLink: '/sleeprecovery',
+            priority: 'HIGH',
+            dedupeKey: `sleep_followup:${sleepLog.activityKey}:${sleepLog.date.toISOString().slice(0, 10)}`,
+            payload: {
+              activityKey,
+              durationMinutes: sleepLog.durationMinutes,
+              quality: sleepLog.quality,
+            },
+          });
+        }
       } catch (notificationError) {
         // Log error but don't fail the activity logging
         logger.error(`Failed to send sleep/recovery notification: ${notificationError.message}`);

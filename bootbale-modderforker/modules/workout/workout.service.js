@@ -1,6 +1,7 @@
 const Workout = require('./workout.model');
 const WorkoutLog = require('./workoutLog.model');
 const User = require('../user/user.model');
+const WellnessEngine = require('../engine/wellnessEngine.service');
 const logger = require('../../utils/logger');
 
 class WorkoutService {
@@ -52,8 +53,70 @@ class WorkoutService {
       // Get total count for pagination
       const total = await Workout.countDocuments(query);
 
+      let enrichedWorkouts = workouts;
+
+      if (userId && !search) {
+        try {
+          const context = await WellnessEngine.buildContext(userId);
+          const readiness = context.scores?.readinessScore || 100;
+          const sleepScore = context.scores?.sleepScore || 100;
+          const goal = context.user?.goalType || 'general_fitness';
+          
+          let recommendedCount = 0;
+          const MAX_RECOMMENDED = 3;
+
+          enrichedWorkouts = enrichedWorkouts.map(workout => {
+            let isRecommended = false;
+            let reason = null;
+
+            if (recommendedCount < MAX_RECOMMENDED) {
+              // High fatigue / sleep debt overrides goal
+              if (readiness < 50 || sleepScore < 60) {
+                if (workout.category === 'recovery' || workout.category === 'yoga' || workout.intensity === 'low') {
+                  isRecommended = true;
+                  reason = "Active recovery recommended due to high fatigue/low sleep score";
+                }
+              } 
+              // Otherwise, match based on user's goal
+              else {
+                if (goal === 'muscle_gain' && workout.category === 'strength') {
+                  isRecommended = true;
+                  reason = "Matches your muscle gain goal";
+                } else if (goal === 'fat_loss' && (workout.category === 'hiit' || workout.category === 'cardio')) {
+                  isRecommended = true;
+                  reason = "Matches your fat loss goal";
+                } else if (goal === 'endurance' && workout.category === 'cardio') {
+                  isRecommended = true;
+                  reason = "Matches your endurance goal";
+                }
+              }
+            }
+
+            if (isRecommended) {
+              recommendedCount++;
+            }
+
+            return {
+              ...workout,
+              recommended: isRecommended,
+              recommendationReason: reason
+            };
+          });
+
+          // Sort recommended to top
+          enrichedWorkouts.sort((a, b) => {
+            if (a.recommended && !b.recommended) return -1;
+            if (!a.recommended && b.recommended) return 1;
+            return 0;
+          });
+          
+        } catch (engineError) {
+          logger.error(`Failed to build context for workout recommendations: ${engineError.message}`);
+        }
+      }
+
       return {
-        workouts,
+        workouts: enrichedWorkouts,
         pagination: {
           page: parseInt(page),
           limit: parseInt(limit),

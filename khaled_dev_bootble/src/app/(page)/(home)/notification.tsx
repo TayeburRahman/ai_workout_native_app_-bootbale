@@ -9,6 +9,10 @@ import {
   usePatchReadAllNotificationMutation,
   usePatchSingleNotificationMutation,
 } from "@/src/redux/page/homedataApi";
+import {
+  useGetProfileDataQuery,
+  useUpdateUserProfileMutation,
+} from "@/src/redux/page/profiledataApi";
 import { FontAwesome6 } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
@@ -22,6 +26,8 @@ import {
   Text,
   TouchableOpacity,
   View,
+  Modal,
+  Switch,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -92,6 +98,24 @@ const getNotificationIcon = (type: string, icon?: string) => {
   }
 };
 
+const getHierarchyTag = (notification: NotificationData) => {
+  if (notification.priority === 'HIGH') return 'WARNING';
+  if (notification.title?.includes('Upcoming') || notification.title?.includes('Reminder') || notification.type === 'REMINDER') return 'PROMPT';
+  if (notification.title?.includes('Logged') || notification.title?.includes('Completed') || notification.title?.includes('Success')) return 'CONFIRMATION';
+  if (notification.type === 'PROMOTIONAL') return 'PROMO';
+  return 'INFO';
+};
+
+const getHierarchyTagColor = (tag: string) => {
+  switch (tag) {
+    case 'WARNING': return '#EF4444';
+    case 'PROMPT': return '#F59E0B';
+    case 'CONFIRMATION': return '#10B981';
+    case 'PROMO': return '#EC4899';
+    default: return '#3B82F6';
+  }
+};
+
 const NotificationCard = ({
   notification,
   onPress,
@@ -101,7 +125,7 @@ const NotificationCard = ({
   isSelectionMode,
 }: {
   notification: NotificationData;
-  onPress: (id: string) => void;
+  onPress: (notification: NotificationData) => void;
   onDelete: (id: string) => void;
   onMarkRead: (id: string) => void;
   isSelected?: boolean;
@@ -111,7 +135,7 @@ const NotificationCard = ({
 
   return (
     <TouchableOpacity
-      onPress={() => onPress(notification._id)}
+      onPress={() => onPress(notification)}
       className={`mb-4 mx-5 p-5 rounded-2xl border-l-4 ${
         !notification.read ? "bg-white/10" : "bg-white/5"
       } ${isSelected ? "border-2 border-purple-500" : ""}`}
@@ -153,8 +177,15 @@ const NotificationCard = ({
               {notification.title}
             </Text>
             {!notification.read && (
-              <View className="w-3 h-3 rounded-full bg-purple-500" />
+              <View className="w-3 h-3 rounded-full bg-purple-500 ml-1 mt-2" />
             )}
+          </View>
+
+          {/* Hierarchy Badge */}
+          <View className="self-start px-2 py-0.5 rounded mb-2 border" style={{ borderColor: getHierarchyTagColor(getHierarchyTag(notification)), backgroundColor: getHierarchyTagColor(getHierarchyTag(notification)) + '20' }}>
+            <Text className="text-[10px] font-JosefinSansSemiBold" style={{ color: getHierarchyTagColor(getHierarchyTag(notification)) }}>
+              {getHierarchyTag(notification)}
+            </Text>
           </View>
 
           <Text className="font-JosefinSansRegular text-white/80 text-sm mb-2 leading-5">
@@ -201,6 +232,30 @@ const NotificationPage = () => {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  const [settingsModalVisible, setSettingsModalVisible] = useState(false);
+
+  // Profile API for preferences
+  const { data: profileResponse } = useGetProfileDataQuery();
+  const [updateProfile, { isLoading: isUpdatingProfile }] = useUpdateUserProfileMutation();
+  const preferences = profileResponse?.data?.notifications || {
+    workoutReminders: true,
+    mealReminders: true,
+    sleepReminders: true,
+    promotional: false,
+  };
+
+  const handleTogglePreference = async (key: string, value: boolean) => {
+    try {
+      await updateProfile({
+        notifications: {
+          ...preferences,
+          [key]: value,
+        },
+      }).unwrap();
+    } catch (error) {
+      Alert.alert("Error", "Failed to update preference");
+    }
+  };
 
   // API hooks
   const {
@@ -235,28 +290,57 @@ const NotificationPage = () => {
   );
 
   const filteredNotifications = useMemo(() => {
-    return notifications.filter((notification) => {
+    const priorityWeight: Record<string, number> = {
+      URGENT: 3,
+      HIGH: 2,
+      MEDIUM: 1,
+      LOW: 0
+    };
+
+    const filtered = notifications.filter((notification: NotificationData) => {
       if (activeTab === "all") return true;
       if (activeTab === "unread") return !notification.read;
-      return notification.type?.toLowerCase() === activeTab;
+      
+      const type = notification.type?.toUpperCase() || "";
+      if (activeTab === "health") {
+        return ["WORKOUT", "MEAL", "SLEEP_RECOVERY", "REMINDER"].includes(type);
+      }
+      if (activeTab === "system") {
+        return ["SYSTEM", "SECURITY", "ADMIN", "SUBSCRIPTION"].includes(type);
+      }
+      return false;
+    });
+
+    return filtered.sort((a: NotificationData, b: NotificationData) => {
+      const priorityA = priorityWeight[a.priority || "MEDIUM"] || 0;
+      const priorityB = priorityWeight[b.priority || "MEDIUM"] || 0;
+      if (priorityA !== priorityB) {
+        return priorityB - priorityA;
+      }
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
   }, [notifications, activeTab]);
 
   const tabs = useMemo(() => {
-    const typeCounts = notifications.reduce(
-      (acc, notification) => {
-        const type = notification.type?.toLowerCase() || "other";
-        acc[type] = (acc[type] || 0) + 1;
-        return acc;
-      },
-      {} as Record<string, number>,
-    );
+    const counts = {
+      health: 0,
+      system: 0,
+    };
+
+    notifications.forEach((notification: NotificationData) => {
+      const type = notification.type?.toUpperCase() || "";
+      if (["WORKOUT", "MEAL", "SLEEP_RECOVERY", "REMINDER"].includes(type)) {
+        counts.health++;
+      } else if (["SYSTEM", "SECURITY", "ADMIN", "SUBSCRIPTION"].includes(type)) {
+        counts.system++;
+      }
+    });
 
     return [
       { id: "all", label: "All", count: notifications.length },
       { id: "unread", label: "Unread", count: unreadCount },
-      { id: "system", label: "System", count: typeCounts.system || 0 },
-      { id: "meal", label: "Meal", count: typeCounts.meal || 0 },
+      { id: "health", label: "Health & Training", count: counts.health },
+      { id: "system", label: "System & Security", count: counts.system },
     ];
   }, [notifications, unreadCount]);
 
@@ -277,7 +361,8 @@ const NotificationPage = () => {
   }, [refreshData]);
 
   const handleNotificationPress = useCallback(
-    async (id: string) => {
+    async (notification: NotificationData) => {
+      const id = notification._id;
       if (isSelectionMode) {
         // Toggle selection in selection mode
         setSelectedIds((prev) => {
@@ -290,10 +375,35 @@ const NotificationPage = () => {
       } else {
         // Mark as read when pressed in normal mode
         try {
-          await patchSingle(id).unwrap();
-          await refetchUnreadCount();
+          if (!notification.read) {
+            await patchSingle(id).unwrap();
+            refetchUnreadCount();
+          }
+          
+          // Deep link routing based on actionUrl or type
+          if (notification.actionUrl) {
+            router.push(notification.actionUrl as any);
+          } else {
+            const type = notification.type?.toUpperCase();
+            const sourceId = (notification as any).sourceId;
+            if (type === "WORKOUT") {
+              if (sourceId) {
+                router.push(`/workout/${sourceId}` as any);
+              } else {
+                router.push("/workout");
+              }
+            } else if (type === "MEAL") {
+              router.push("/home");
+            } else if (type === "SLEEP_RECOVERY") {
+              router.push("/sleeprecovery");
+            } else if (type === "SUBSCRIPTION") {
+              router.push("/(page)/(profile)/subscription" as any);
+            } else if (type === "CALENDAR") {
+              router.push("/(page)/(calender)/calender" as any);
+            }
+          }
         } catch (error) {
-          console.error("Failed to mark notification as read:", error);
+          console.error("Failed to process notification press:", error);
         }
       }
     },
@@ -505,18 +615,31 @@ const NotificationPage = () => {
             )}
           </View>
 
-          <TouchableOpacity
-            onPress={toggleSelectionMode}
-            className="w-10 h-10 bg-white/10 rounded-full justify-center items-center border border-white/20 active:bg-white/20"
-            activeOpacity={0.7}
-            disabled={isLoading}
-          >
-            <FontAwesome6
-              name={isSelectionMode ? "check" : "pen-to-square"}
-              size={18}
-              color="#A78BFA"
-            />
-          </TouchableOpacity>
+          <View className="flex-row">
+            {!isSelectionMode && (
+              <TouchableOpacity
+                onPress={() => setSettingsModalVisible(true)}
+                className="w-10 h-10 bg-white/10 rounded-full justify-center items-center border border-white/20 active:bg-white/20 mr-2"
+                activeOpacity={0.7}
+                disabled={isLoading}
+              >
+                <FontAwesome6 name="gear" size={18} color="#A78BFA" />
+              </TouchableOpacity>
+            )}
+
+            <TouchableOpacity
+              onPress={toggleSelectionMode}
+              className="w-10 h-10 bg-white/10 rounded-full justify-center items-center border border-white/20 active:bg-white/20"
+              activeOpacity={0.7}
+              disabled={isLoading}
+            >
+              <FontAwesome6
+                name={isSelectionMode ? "check" : "pen-to-square"}
+                size={18}
+                color="#A78BFA"
+              />
+            </TouchableOpacity>
+          </View>
         </Animated.View>
 
         {/* Tabs - Hide in selection mode */}
@@ -681,7 +804,7 @@ const NotificationPage = () => {
         >
           {filteredNotifications.length > 0 ? (
             <>
-              {filteredNotifications.map((notification) => (
+              {filteredNotifications.map((notification: NotificationData) => (
                 <NotificationCard
                   key={notification._id}
                   notification={notification}
@@ -719,6 +842,94 @@ const NotificationPage = () => {
           {/* Spacer */}
           <View className="h-20" />
         </Animated.ScrollView>
+
+        {/* Settings Modal */}
+        <Modal
+          visible={settingsModalVisible}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setSettingsModalVisible(false)}
+        >
+          <View className="flex-1 justify-end bg-black/60">
+            <View className="bg-[#1C1C1E] rounded-t-3xl p-6 pb-10 border-t border-white/10">
+              <View className="flex-row justify-between items-center mb-6">
+                <Text className="font-JosefinSansBold text-xl text-white">
+                  Notification Preferences
+                </Text>
+                <TouchableOpacity
+                  onPress={() => setSettingsModalVisible(false)}
+                  className="w-8 h-8 bg-white/10 rounded-full justify-center items-center"
+                >
+                  <FontAwesome6 name="xmark" size={16} color="#A78BFA" />
+                </TouchableOpacity>
+              </View>
+
+              <Text className="font-JosefinSansRegular text-white/60 mb-6">
+                Customize which alerts you want to receive. Muted alerts will not send push notifications but may still appear in your feed if relevant.
+              </Text>
+
+              <View className="space-y-6">
+                <View className="flex-row justify-between items-center">
+                  <View className="flex-1 mr-4">
+                    <Text className="font-JosefinSansSemiBold text-white text-base">Workout Reminders</Text>
+                    <Text className="font-JosefinSansRegular text-white/60 text-xs mt-1">Pre-shift limits, mobility blocks, and scheduled training</Text>
+                  </View>
+                  <Switch
+                    value={preferences.workoutReminders}
+                    onValueChange={(val) => handleTogglePreference("workoutReminders", val)}
+                    trackColor={{ false: "#3F3F46", true: "#8B5CF6" }}
+                    thumbColor="#FFFFFF"
+                    disabled={isUpdatingProfile}
+                  />
+                </View>
+
+                <View className="flex-row justify-between items-center">
+                  <View className="flex-1 mr-4">
+                    <Text className="font-JosefinSansSemiBold text-white text-base">Meal Reminders</Text>
+                    <Text className="font-JosefinSansRegular text-white/60 text-xs mt-1">Hydration targets, nutritional resets, and meal logging</Text>
+                  </View>
+                  <Switch
+                    value={preferences.mealReminders}
+                    onValueChange={(val) => handleTogglePreference("mealReminders", val)}
+                    trackColor={{ false: "#3F3F46", true: "#8B5CF6" }}
+                    thumbColor="#FFFFFF"
+                    disabled={isUpdatingProfile}
+                  />
+                </View>
+
+                <View className="flex-row justify-between items-center">
+                  <View className="flex-1 mr-4">
+                    <Text className="font-JosefinSansSemiBold text-white text-base">Sleep & Recovery</Text>
+                    <Text className="font-JosefinSansRegular text-white/60 text-xs mt-1">Wind-down prompts and readiness updates</Text>
+                  </View>
+                  <Switch
+                    value={preferences.sleepReminders}
+                    onValueChange={(val) => handleTogglePreference("sleepReminders", val)}
+                    trackColor={{ false: "#3F3F46", true: "#8B5CF6" }}
+                    thumbColor="#FFFFFF"
+                    disabled={isUpdatingProfile}
+                  />
+                </View>
+                
+                <View className="h-[1px] w-full bg-white/10 my-2" />
+
+                <View className="flex-row justify-between items-center">
+                  <View className="flex-1 mr-4">
+                    <Text className="font-JosefinSansSemiBold text-white text-base">Promotional Offers</Text>
+                    <Text className="font-JosefinSansRegular text-white/60 text-xs mt-1">Discounts, subscription deals, and marketing</Text>
+                  </View>
+                  <Switch
+                    value={preferences.promotional}
+                    onValueChange={(val) => handleTogglePreference("promotional", val)}
+                    trackColor={{ false: "#3F3F46", true: "#8B5CF6" }}
+                    thumbColor="#FFFFFF"
+                    disabled={isUpdatingProfile}
+                  />
+                </View>
+              </View>
+            </View>
+          </View>
+        </Modal>
       </SafeAreaView>
     </GradientBackground>
   );

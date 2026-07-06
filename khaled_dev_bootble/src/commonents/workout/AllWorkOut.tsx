@@ -41,6 +41,9 @@ const AllWorkOut: React.FC = () => {
     return <SkeletonLoader />;
   }
 
+  const recommendedWorkouts = filteredWorkouts.filter((w: any) => w.recommended);
+  const otherWorkouts = filteredWorkouts.filter((w: any) => !w.recommended);
+
   // Function to chunk array into rows for grid
   const chunkArray = (arr: any[], size: number) => {
     return Array.from({ length: Math.ceil(arr.length / size) }, (_, i) =>
@@ -48,7 +51,8 @@ const AllWorkOut: React.FC = () => {
     );
   };
 
-  const rows = chunkArray(filteredWorkouts, 2);
+  const recommendedRows = chunkArray(recommendedWorkouts, 2);
+  const otherRows = chunkArray(otherWorkouts, 2);
 
   return (
     <View className="flex-1">
@@ -100,19 +104,50 @@ const AllWorkOut: React.FC = () => {
             </Text>
           </View>
         ) : (
-          // Manual grid layout
-          rows.map((row, rowIndex) => (
-            <View
-              key={`row-${rowIndex}`}
-              className="flex-row justify-between mb-4"
-            >
-              {row.map((item) => (
-                <WorkOurCard item={item} key={item._id} />
-              ))}
-              {/* Add empty placeholder if row has only one item */}
-              {row.length === 1 && <View className="w-[48%]" />}
-            </View>
-          ))
+          <View>
+            {/* Recommended Section */}
+            {recommendedWorkouts.length > 0 && activeTab === "discover" && (
+              <View className="mb-6">
+                <View className="flex-row items-center mb-3">
+                  <View className="w-1.5 h-6 bg-[#10B981] rounded-full mr-3" />
+                  <Text className="font-JosefinSansBold text-xl text-white">Recommended for You</Text>
+                </View>
+                {recommendedRows.map((row, rowIndex) => (
+                  <View
+                    key={`rec-row-${rowIndex}`}
+                    className="flex-row justify-between mb-4"
+                  >
+                    {row.map((item) => (
+                      <WorkOurCard item={item} key={item._id} />
+                    ))}
+                    {row.length === 1 && <View className="w-[48%]" />}
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {/* General Library Section */}
+            {otherWorkouts.length > 0 && (
+              <View>
+                {(recommendedWorkouts.length > 0 && activeTab === "discover") && (
+                  <Text className="font-JosefinSansSemiBold text-lg text-white/70 mb-3">
+                    Workout Library
+                  </Text>
+                )}
+                {otherRows.map((row, rowIndex) => (
+                  <View
+                    key={`oth-row-${rowIndex}`}
+                    className="flex-row justify-between mb-4"
+                  >
+                    {row.map((item) => (
+                      <WorkOurCard item={item} key={item._id} />
+                    ))}
+                    {row.length === 1 && <View className="w-[48%]" />}
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
         )}
       </ScrollView>
     </View>

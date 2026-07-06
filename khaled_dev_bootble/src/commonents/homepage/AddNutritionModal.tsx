@@ -310,6 +310,30 @@ const AddNutritionModal: React.FC<AddNutritionModalProps> = ({
       return;
     }
 
+    if (protein === 0 && fat === 0 && carbs === 0) {
+      Alert.alert(
+        "Invalid Data", 
+        "A food must contain at least some macronutrients (Protein, Fat, or Carbs). Empty foods are not permitted."
+      );
+      return;
+    }
+
+    if (!manualFood.autoCalculate) {
+      const expectedCalories = Math.round((protein * 4) + (carbs * 4) + (fat * 9));
+      const variance = Math.abs(calories - expectedCalories);
+      
+      // Allow a 20% tolerance, or a minimum flat tolerance of 15 calories for very small numbers
+      const allowedVariance = Math.max(expectedCalories * 0.20, 15);
+      
+      if (variance > allowedVariance) {
+        Alert.alert(
+          "Inconsistent Nutrition Data",
+          `The manually entered calories (${calories} kcal) do not match the expected calories based on the macros you provided (~${expectedCalories} kcal).\n\nPlease correct the values or enable Auto-calculate.`
+        );
+        return;
+      }
+    }
+
     try {
       const customFoodResponse = await postCustomAddMeals({
         name: manualFood.name.trim(),

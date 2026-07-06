@@ -126,24 +126,50 @@ class NutritionController {
       });
 
       try {
+        const mealDate = new Date(meal.date || new Date());
+        mealDate.setHours(0, 0, 0, 0);
+        const nextDay = new Date(mealDate);
+        nextDay.setDate(nextDay.getDate() + 1);
+
+        const Meal = require('./meal.model');
+        const sessionMeals = await Meal.find({
+          userId: req.user.id,
+          mealType: meal.mealType,
+          date: { $gte: mealDate, $lt: nextDay }
+        });
+
+        const sessionTotals = sessionMeals.reduce((acc, m) => {
+          acc.calories += (m.calories || 0);
+          acc.protein += (m.protein || 0);
+          acc.carbs += (m.carbs || 0);
+          acc.fat += (m.fat || 0);
+          acc.items += (m.items && m.items.length > 0 ? m.items.length : 1);
+          return acc;
+        }, { calories: 0, protein: 0, carbs: 0, fat: 0, items: 0 });
+
+        const dateKey = mealDate.toISOString().slice(0, 10);
+        const dedupeKey = `meal:${meal.mealType}:${dateKey}`;
+        const titleCaseType = meal.mealType.charAt(0).toUpperCase() + meal.mealType.slice(1);
+
         await WellnessEngine.recordEvent({
           userId: req.user.id,
           type: 'MEAL',
           category: 'meal',
-          title: 'Meal logged',
-          message: `${meal.title} was logged for your ${meal.mealType} session.`,
+          title: `${titleCaseType} Logged`,
+          message: `Your ${meal.mealType} now contains ${sessionTotals.items} items. Totals: ${Math.round(sessionTotals.calories)} kcal (P: ${Math.round(sessionTotals.protein)}g, C: ${Math.round(sessionTotals.carbs)}g, F: ${Math.round(sessionTotals.fat)}g).`,
           sourceModule: 'nutrition',
           sourceId: meal._id.toString(),
           deepLink: '/home',
           priority: 'MEDIUM',
-          dedupeKey: `meal:${meal.mealSessionId}`,
+          dedupeKey: dedupeKey,
           payload: {
             mealType: meal.mealType,
             mealSessionId: meal.mealSessionId,
-            calories: meal.calories,
-            protein: meal.protein,
-            carbs: meal.carbs,
-            fat: meal.fat,
+            calories: sessionTotals.calories,
+            protein: sessionTotals.protein,
+            carbs: sessionTotals.carbs,
+            fat: sessionTotals.fat,
+            items: sessionTotals.items
           },
         });
       } catch (notificationError) {

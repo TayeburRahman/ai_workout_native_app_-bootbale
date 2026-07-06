@@ -27,7 +27,7 @@ export const sleepRecoveryApi = api.injectEndpoints({
     }),
   }),
 
-  overrideExisting: false,
+  overrideExisting: true,
 });
 
 export const { useGetSleepRecoveryQuery, usePostSleepRecoveryMutation, useGetSleepTipsQuery } =

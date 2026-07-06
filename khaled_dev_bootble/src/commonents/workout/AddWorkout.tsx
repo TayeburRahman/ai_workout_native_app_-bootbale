@@ -34,12 +34,17 @@ const AddWorkout: React.FC<AddWorkoutProps> = ({ open, close }) => {
   const [video, setVideo] = useState<string | null>(null);
   const [videoName, setVideoName] = useState<string | null>(null);
   const [title, setTitle] = useState<string>("");
+  const [description, setDescription] = useState<string>("");
+  const [category, setCategory] = useState<string>("custom");
+  const [intensity, setIntensity] = useState<string>("medium");
+  const [exercises, setExercises] = useState<{name: string, sets: string, reps: string}[]>([]);
   const [duration, setDuration] = useState<string>("");
   const [errors, setErrors] = useState<{
     title?: string;
     duration?: string;
     image?: string;
     video?: string;
+    exercises?: string;
   }>({});
 
   const [createWorkout, { isLoading }] = useCreateWorkoutMutation();
@@ -50,6 +55,10 @@ const AddWorkout: React.FC<AddWorkoutProps> = ({ open, close }) => {
     setVideo(null);
     setVideoName(null);
     setTitle("");
+    setDescription("");
+    setCategory("custom");
+    setIntensity("medium");
+    setExercises([]);
     setDuration("");
     setErrors({});
   };
@@ -73,7 +82,7 @@ const AddWorkout: React.FC<AddWorkoutProps> = ({ open, close }) => {
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ['images'],
         allowsEditing: true,
         aspect: [1, 1],
         quality: 0.8,
@@ -103,7 +112,7 @@ const AddWorkout: React.FC<AddWorkoutProps> = ({ open, close }) => {
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+        mediaTypes: ['videos'],
         allowsEditing: true,
         quality: 0.8,
         videoMaxDuration: 300, // 5 minutes max
@@ -148,6 +157,15 @@ const AddWorkout: React.FC<AddWorkoutProps> = ({ open, close }) => {
       }
     }
 
+    if (exercises.length === 0) {
+      newErrors.exercises = "Please add at least one exercise";
+    } else {
+      const invalidExercise = exercises.find(ex => !ex.name.trim() || !ex.sets || !ex.reps);
+      if (invalidExercise) {
+        newErrors.exercises = "Please fill out all exercise fields (name, sets, reps)";
+      }
+    }
+
     if (!image) {
       newErrors.image = "Please select an image";
     }
@@ -164,7 +182,18 @@ const AddWorkout: React.FC<AddWorkoutProps> = ({ open, close }) => {
 
     const formData = new FormData();
     formData.append("title", title.trim());
+    if (description.trim()) formData.append("description", description.trim());
+    formData.append("category", category);
+    formData.append("intensity", intensity);
     formData.append("durationMinutes", duration);
+    
+    // Parse exercises properly for backend
+    const formattedExercises = exercises.map(ex => ({
+      name: ex.name.trim(),
+      sets: parseInt(ex.sets) || 1,
+      reps: parseInt(ex.reps) || 1
+    }));
+    formData.append("exercises", JSON.stringify(formattedExercises));
 
     // Append image if exists
     if (image) {
@@ -311,6 +340,64 @@ const AddWorkout: React.FC<AddWorkoutProps> = ({ open, close }) => {
                 )}
               </View>
 
+              {/* DESCRIPTION INPUT */}
+              <View className="mb-4">
+                <Text className="text-white text-sm font-PoppinsMedium mb-1">
+                  Description
+                </Text>
+                <TextInput
+                  value={description}
+                  onChangeText={setDescription}
+                  placeholder="Notes about this workout..."
+                  placeholderTextColor="#8C90B6"
+                  multiline
+                  numberOfLines={3}
+                  className="bg-[#1A214D] text-white rounded-xl px-4 py-3 font-PoppinsRegular text-sm"
+                  style={{ minHeight: 80, textAlignVertical: "top" }}
+                  editable={!isLoading}
+                />
+              </View>
+
+              {/* CATEGORY & INTENSITY */}
+              <View className="flex-row justify-between mb-4 gap-3">
+                <View className="flex-1">
+                  <Text className="text-white text-sm font-PoppinsMedium mb-1">
+                    Category <Text className="text-[#FF5C5C]">*</Text>
+                  </Text>
+                  <View className="flex-row flex-wrap gap-2">
+                    {["strength", "cardio", "hiit", "yoga", "recovery"].map((cat) => (
+                      <TouchableOpacity
+                        key={cat}
+                        onPress={() => setCategory(cat)}
+                        className={`px-3 py-1.5 rounded-full border ${category === cat ? 'bg-[#A89CFF] border-[#A89CFF]' : 'border-[#A89CFF]/50 bg-transparent'}`}
+                      >
+                        <Text className={`text-xs font-JosefinSansMedium capitalize ${category === cat ? 'text-[#0C1234]' : 'text-white'}`}>
+                          {cat}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+              </View>
+              <View className="mb-4">
+                <Text className="text-white text-sm font-PoppinsMedium mb-1">
+                  Intensity <Text className="text-[#FF5C5C]">*</Text>
+                </Text>
+                <View className="flex-row flex-wrap gap-2">
+                  {["low", "medium", "high"].map((level) => (
+                    <TouchableOpacity
+                      key={level}
+                      onPress={() => setIntensity(level)}
+                      className={`px-3 py-1.5 rounded-full border ${intensity === level ? 'bg-[#F59E0B] border-[#F59E0B]' : 'border-[#F59E0B]/50 bg-transparent'}`}
+                    >
+                      <Text className={`text-xs font-JosefinSansMedium capitalize ${intensity === level ? 'text-[#0C1234]' : 'text-white'}`}>
+                        {level}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
               {/* SESSION DURATION */}
               <View className="mb-4">
                 <Text className="text-white text-sm font-PoppinsMedium mb-1">
@@ -338,6 +425,88 @@ const AddWorkout: React.FC<AddWorkoutProps> = ({ open, close }) => {
                 {errors.duration && (
                   <Text className="text-[#FF5C5C] text-xs mt-1 font-PoppinsRegular">
                     {errors.duration}
+                  </Text>
+                )}
+              </View>
+
+              {/* EXERCISE LIST */}
+              <View className="mb-4">
+                <View className="flex-row justify-between items-center mb-2">
+                  <Text className="text-white text-sm font-PoppinsMedium">
+                    Exercises <Text className="text-[#FF5C5C]">*</Text>
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => setExercises([...exercises, { name: "", sets: "3", reps: "10" }])}
+                    className="bg-[#A89CFF]/20 px-3 py-1 rounded-full border border-[#A89CFF]/50"
+                  >
+                    <Text className="text-[#A89CFF] text-xs font-JosefinSansSemiBold">+ Add Exercise</Text>
+                  </TouchableOpacity>
+                </View>
+                
+                {exercises.length === 0 ? (
+                  <View className="bg-[#1A214D] p-4 rounded-xl items-center border border-dashed border-[#A89CFF]/50">
+                    <Text className="text-gray-400 text-xs font-PoppinsRegular text-center">
+                      Add exercises to build your workout session
+                    </Text>
+                  </View>
+                ) : (
+                  exercises.map((ex, idx) => (
+                    <View key={idx} className="bg-[#1A214D] p-3 rounded-xl mb-2 border border-white/5">
+                      <View className="flex-row justify-between mb-2">
+                        <Text className="text-white text-xs font-JosefinSansSemiBold">Exercise {idx + 1}</Text>
+                        <TouchableOpacity onPress={() => {
+                          const newEx = [...exercises];
+                          newEx.splice(idx, 1);
+                          setExercises(newEx);
+                        }}>
+                          <Text className="text-[#FF5C5C] text-xs font-JosefinSansSemiBold">Remove</Text>
+                        </TouchableOpacity>
+                      </View>
+                      <TextInput
+                        value={ex.name}
+                        onChangeText={(text) => {
+                          const newEx = [...exercises];
+                          newEx[idx].name = text;
+                          setExercises(newEx);
+                        }}
+                        placeholder="Exercise name (e.g., Push-ups)"
+                        placeholderTextColor="#8C90B6"
+                        className="bg-[#0C1234] text-white rounded-lg px-3 py-2 text-xs font-PoppinsRegular mb-2 border border-white/10"
+                      />
+                      <View className="flex-row gap-2">
+                        <View className="flex-1 flex-row items-center bg-[#0C1234] rounded-lg border border-white/10 px-3">
+                          <Text className="text-gray-400 text-xs mr-2">Sets:</Text>
+                          <TextInput
+                            value={ex.sets}
+                            onChangeText={(text) => {
+                              const newEx = [...exercises];
+                              newEx[idx].sets = text.replace(/[^0-9]/g, "");
+                              setExercises(newEx);
+                            }}
+                            keyboardType="numeric"
+                            className="flex-1 text-white py-2 text-xs font-PoppinsRegular"
+                          />
+                        </View>
+                        <View className="flex-1 flex-row items-center bg-[#0C1234] rounded-lg border border-white/10 px-3">
+                          <Text className="text-gray-400 text-xs mr-2">Reps:</Text>
+                          <TextInput
+                            value={ex.reps}
+                            onChangeText={(text) => {
+                              const newEx = [...exercises];
+                              newEx[idx].reps = text.replace(/[^0-9]/g, "");
+                              setExercises(newEx);
+                            }}
+                            keyboardType="numeric"
+                            className="flex-1 text-white py-2 text-xs font-PoppinsRegular"
+                          />
+                        </View>
+                      </View>
+                    </View>
+                  ))
+                )}
+                {errors.exercises && (
+                  <Text className="text-[#FF5C5C] text-xs mt-1 font-PoppinsRegular">
+                    {errors.exercises}
                   </Text>
                 )}
               </View>

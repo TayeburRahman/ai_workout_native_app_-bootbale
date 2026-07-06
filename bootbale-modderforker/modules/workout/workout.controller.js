@@ -94,18 +94,34 @@ class WorkoutController {
         finalVideoUrl = await uploadWorkoutFileToCloudinary(req.files.video[0]);
       }
 
+      // Parse JSON strings from form-data
+      let parsedExercises = exercises;
+      if (typeof exercises === 'string') {
+        try { parsedExercises = JSON.parse(exercises); } catch (e) {}
+      }
+
+      let parsedEquipment = equipment;
+      if (typeof equipment === 'string') {
+        try { parsedEquipment = JSON.parse(equipment); } catch (e) {}
+      }
+
+      let parsedTags = tags;
+      if (typeof tags === 'string') {
+        try { parsedTags = JSON.parse(tags); } catch (e) {}
+      }
+
       const workout = await WorkoutService.createWorkout(req.user.id, {
         title,
         description,
         durationMinutes: parseInt(durationMinutes),
         category,
         intensity,
-        exercises,
-        equipment,
+        exercises: parsedExercises,
+        equipment: parsedEquipment,
         imageUrl: finalImageUrl,
         videoUrl: finalVideoUrl,
-        tags,
-        isPublic: isPublic || false,
+        tags: parsedTags,
+        isPublic: isPublic === 'true' || isPublic === true,
       });
 
       res.status(201).json({
