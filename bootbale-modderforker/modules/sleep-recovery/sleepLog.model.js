@@ -17,6 +17,7 @@ const sleepLogSchema = new mongoose.Schema(
         'pre_shift_focus',
         'night_sleep',
         'nap',
+        'active_recovery',
       ],
     },
     shiftContext: {

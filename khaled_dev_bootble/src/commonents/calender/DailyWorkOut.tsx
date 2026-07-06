@@ -27,14 +27,14 @@ export interface WorkoutItem {
   title: string;
   subtitle: string;
   status:
-    | "suggested"
-    | "completed"
-    | "done"
-    | "logged"
-    | "expired"
-    | "missed"
-    | "downgraded"
-    | "rescheduled";
+  | "suggested"
+  | "completed"
+  | "done"
+  | "logged"
+  | "expired"
+  | "missed"
+  | "downgraded"
+  | "rescheduled";
   isRecommended?: boolean;
 }
 
@@ -139,7 +139,7 @@ const DailyWorkOut: React.FC<Props> = ({ item }) => {
         end={{ x: 0.3, y: 1 }}
         style={{
           width: "100%",
-          height: responsive.verticalScale(94),
+          height: responsive.verticalScale(150),
 
           borderRadius: 16,
           overflow: "hidden",
@@ -257,13 +257,12 @@ const DailyWorkOut: React.FC<Props> = ({ item }) => {
             <TouchableOpacity
               onPress={handleComplete}
               disabled={isCompleted || isMissed || isCompleting}
-              className={`p-1.5 border rounded-full ${
-                isCompleted
-                  ? "bg-[#10B9811C] border-[#10B981]"
-                  : isMissed
-                    ? "bg-transparent border-[#EF4444]"
-                    : "bg-[#FFFFFF05] border-[#FFFFFF22]"
-              }`}
+              className={`p-1.5 border rounded-full ${isCompleted
+                ? "bg-[#10B9811C] border-[#10B981]"
+                : isMissed
+                  ? "bg-transparent border-[#EF4444]"
+                  : "bg-[#FFFFFF05] border-[#FFFFFF22]"
+                }`}
               activeOpacity={0.7}
             >
               <Ionicons

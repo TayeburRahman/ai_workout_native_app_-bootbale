@@ -78,7 +78,7 @@ const ShiftCycle: React.FC = () => {
 
       {/* Cards */}
       {calendershift?.data?.events &&
-        calendershift?.data?.events.map((item, index) => (
+        calendershift?.data?.events.map((item: any, index: number) => (
           <DailyWorkOut key={index} item={item} />
         ))}
     </View>

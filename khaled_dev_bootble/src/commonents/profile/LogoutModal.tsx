@@ -25,6 +25,7 @@ const LogoutModal: React.FC<LogoutModalProps> = ({ visible, onClose }) => {
 
       // Clear Redux state
       dispatch(logoutUser());
+      router.dismissAll();
       router.replace("/signin");
 
       console.log("Logout successful");
@@ -34,6 +35,9 @@ const LogoutModal: React.FC<LogoutModalProps> = ({ visible, onClose }) => {
       await SecureStore.deleteItemAsync("user");
       await SecureStore.deleteItemAsync("token");
       dispatch(logoutUser());
+      if (router.canDismiss()) {
+        router.dismissAll();
+      }
       router.replace("/signin");
     }
   };

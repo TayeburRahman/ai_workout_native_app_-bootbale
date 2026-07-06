@@ -7,7 +7,7 @@ import { isSuccessfulResponse } from "@/src/utils/authRouting";
 import { FontAwesome6 } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { Text, TouchableOpacity, View } from "react-native";
+import { Text, TouchableOpacity, View, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { SvgXml } from "react-native-svg";
 
@@ -33,10 +33,10 @@ const TAG_STYLES: Record<string, { bg: string; text: string }> = {
 
 const GoalSelection = () => {
   const [selected, setSelected] = useState<ShiftType | null>(null);
-  
+
   // Fetch profile to check saved goal and onboarding status
   const { data: profileData, isLoading: isLoadingProfile } = useGetMyProfileQuery();
-  
+
   const [selectgoal, { isLoading: isSaving }] = useGoalselectMutation();
 
   const isEditMode = profileData?.data?.user?.onboardingCompleted === true;
@@ -93,11 +93,10 @@ const GoalSelection = () => {
       <TouchableOpacity
         activeOpacity={0.9}
         onPress={() => setSelected(id)}
-        className={`mb-4 rounded-2xl p-4 border ${
-          isActive
-            ? "border-[#8B7CFF] bg-white/10"
-            : "border-white/10 bg-white/5"
-        }`}
+        className={`mb-4 rounded-2xl p-4 border ${isActive
+          ? "border-[#8B7CFF] bg-white/10"
+          : "border-white/10 bg-white/5"
+          }`}
       >
         <View className="flex-row items-center mb-2">
           <View className="w-10 h-10 rounded-full bg-[#EBE9FF] items-center justify-center mr-3">
@@ -126,14 +125,12 @@ const GoalSelection = () => {
           {tags.map((tag) => (
             <View
               key={tag}
-              className={`px-3 py-1 rounded-full ${
-                TAG_STYLES[tag]?.bg || "bg-white/10"
-              }`}
+              className={`px-3 py-1 rounded-full ${TAG_STYLES[tag]?.bg || "bg-white/10"
+                }`}
             >
               <Text
-                className={`text-xs font-JosefinSansSemiBold ${
-                  TAG_STYLES[tag]?.text || "text-white/70"
-                }`}
+                className={`text-xs font-JosefinSansSemiBold ${TAG_STYLES[tag]?.text || "text-white/70"
+                  }`}
               >
                 {tag}
               </Text>
@@ -151,86 +148,87 @@ const GoalSelection = () => {
   return (
     <GradientBackground>
       <SafeAreaView className="flex-1 px-5">
-        {/* Header */}
-        <View className="mt-6 mb-6 relative">
-          {isEditMode && (
-            <TouchableOpacity
-              disabled={isSaving}
-              onPress={() => router.back()}
-              className="w-10 h-10 bg-white/10 rounded-full justify-center items-center backdrop-blur-sm border border-white/20 absolute left-0 top-0 z-10"
-              activeOpacity={0.7}
-            >
-              <FontAwesome6 name="arrow-left" size={16} color="#A5B4FC" />
-            </TouchableOpacity>
-          )}
+        <ScrollView className="flex-1">
+          {/* Header */}
+          <View className="mt-6 mb-6 relative">
+            {isEditMode && (
+              <TouchableOpacity
+                disabled={isSaving}
+                onPress={() => router.back()}
+                className="w-10 h-10 bg-white/10 rounded-full justify-center items-center backdrop-blur-sm border border-white/20 absolute left-0 top-0 z-10"
+                activeOpacity={0.7}
+              >
+                <FontAwesome6 name="arrow-left" size={16} color="#A5B4FC" />
+              </TouchableOpacity>
+            )}
 
-          <Text className="text-white text-2xl font-JosefinSansMedium text-center">
-            {isEditMode ? "Update Primary Goal" : "Primary Goal Selection"}
-          </Text>
-          <Text className="text-white/60 text-base font-JosefinSansRegular text-center mt-1">
-            {isEditMode
-              ? "Modify goal & recalculate your fitness plan"
-              : "Choose your main fitness objective"}
-          </Text>
-        </View>
-
-        {/* Cards */}
-        <GoalCard
-          id="fat_loss"
-          title="Fat Loss"
-          description="Support healthy fat reduction through smart routines."
-          impactDetails={[
-            "Sets a 15% calorie deficit",
-            "Prioritizes high-intensity & circuit training",
-            "Adjusts AI recovery volume parameters"
-          ]}
-          tags={["Sleep", "Workout", "Recovery"]}
-          icon={fire}
-        />
-        <GoalCard
-          id="strength_building"
-          title="Strength Building"
-          description="Increase force output and muscular efficiency safely."
-          impactDetails={[
-            "Sets a 10% calorie surplus (bulking)",
-            "Prioritizes heavy compound lifting days",
-            "Increases required sleep duration targets"
-          ]}
-          tags={["Sleep", "Workout", "Recovery", "Calendar"]}
-          icon={heartbreck}
-        />
-
-        <GoalCard
-          id="maintenance"
-          title="Maintenance"
-          description="Maintain current fitness levels while supporting health."
-          impactDetails={[
-            "Sets balanced maintenance calories",
-            "Generates balanced hybrid workout plans",
-            "Normalizes recovery prompts"
-          ]}
-          tags={["Sleep", "Workout", "Calendar"]}
-          icon={mainten}
-        />
-
-        {/* Continue Button */}
-        <View className="mt-auto mb-6">
-          <TouchableOpacity
-            disabled={!selected || isSaving}
-            onPress={handleSelectGoal}
-            className={`h-14 rounded-full items-center justify-center ${
-              selected && !isSaving ? "bg-[#AFA4FF]" : "bg-white/20"
-            }`}
-          >
-            <Text className="text-black font-JosefinSansMedium">
-              {isSaving
-                ? "Saving & Recalculating..."
-                : isEditMode
-                ? "Save & Recalculate Plan"
-                : "Continue"}
+            <Text className="text-white text-2xl font-JosefinSansMedium text-center">
+              {isEditMode ? "Update Primary Goal" : "Primary Goal Selection"}
             </Text>
-          </TouchableOpacity>
-        </View>
+            <Text className="text-white/60 text-base font-JosefinSansRegular text-center mt-1">
+              {isEditMode
+                ? "Modify goal & recalculate your fitness plan"
+                : "Choose your main fitness objective"}
+            </Text>
+          </View>
+
+          {/* Cards */}
+          <GoalCard
+            id="fat_loss"
+            title="Fat Loss"
+            description="Support healthy fat reduction through smart routines."
+            impactDetails={[
+              "Sets a 15% calorie deficit",
+              "Prioritizes high-intensity & circuit training",
+              "Adjusts AI recovery volume parameters"
+            ]}
+            tags={["Sleep", "Workout", "Recovery"]}
+            icon={fire}
+          />
+          <GoalCard
+            id="strength_building"
+            title="Strength Building"
+            description="Increase force output and muscular efficiency safely."
+            impactDetails={[
+              "Sets a 10% calorie surplus (bulking)",
+              "Prioritizes heavy compound lifting days",
+              "Increases required sleep duration targets"
+            ]}
+            tags={["Sleep", "Workout", "Recovery", "Calendar"]}
+            icon={heartbreck}
+          />
+
+          <GoalCard
+            id="maintenance"
+            title="Maintenance"
+            description="Maintain current fitness levels while supporting health."
+            impactDetails={[
+              "Sets balanced maintenance calories",
+              "Generates balanced hybrid workout plans",
+              "Normalizes recovery prompts"
+            ]}
+            tags={["Sleep", "Workout", "Calendar"]}
+            icon={mainten}
+          />
+
+          {/* Continue Button */}
+          <View className="mt-auto mb-6">
+            <TouchableOpacity
+              disabled={!selected || isSaving}
+              onPress={handleSelectGoal}
+              className={`h-14 rounded-full items-center justify-center ${selected && !isSaving ? "bg-[#AFA4FF]" : "bg-white/20"
+                }`}
+            >
+              <Text className="text-black font-JosefinSansMedium">
+                {isSaving
+                  ? "Saving & Recalculating..."
+                  : isEditMode
+                    ? "Save & Recalculate Plan"
+                    : "Continue"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
       </SafeAreaView>
     </GradientBackground>
   );

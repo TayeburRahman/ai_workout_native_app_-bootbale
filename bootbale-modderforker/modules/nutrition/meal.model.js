@@ -13,8 +13,7 @@ const mealSchema = new mongoose.Schema(
       default: null,
     },
     foodId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Food',
+      type: String, // Supports MongoDB ObjectIds and external IDs (e.g. usda_...)
       default: null,
     },
     title: {
@@ -59,8 +58,7 @@ const mealSchema = new mongoose.Schema(
     items: [
       {
         foodId: {
-          type: mongoose.Schema.Types.ObjectId,
-          ref: 'Food',
+          type: String, // Supports MongoDB ObjectIds and external IDs (e.g. usda_...)
           default: null,
         },
         name: {
