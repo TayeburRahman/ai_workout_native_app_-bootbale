@@ -7,10 +7,10 @@ import {
 } from "@reduxjs/toolkit/query/react";
 import * as SecureStore from "expo-secure-store";
 
-const BASE_URL = "http://16.16.220.76:5000/api/";
+const BASE_URL = "https://ai-workout-native-app-bootbale.vercel.app/api/";
+// const BASE_URL = "http://16.16.220.76:5000/api/";
 // const BASE_URL = "https://apiv2.bootble.com/api/";
-
-// "http://10.10.20.17:5000/api/";
+// const BASE_URL = "http://10.10.20.17:5000/api/";
 // ------------------------------
 // Get token helper
 // ------------------------------
