@@ -6,8 +6,8 @@ import { useShiftselectMutation } from "@/src/redux/page/selectApi";
 import { isSuccessfulResponse } from "@/src/utils/authRouting";
 import { FontAwesome6 } from "@expo/vector-icons";
 import { router } from "expo-router";
-import React, { useEffect, useState } from "react";
-import { Text, TouchableOpacity, View } from "react-native";
+import { useEffect, useState } from "react";
+import { ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { SvgXml } from "react-native-svg";
 
@@ -36,7 +36,8 @@ const ShiftSelection = () => {
   const [selected, setSelected] = useState<ShiftType | null>(null);
 
   // Fetch profile to check saved shift and onboarding status
-  const { data: profileData, isLoading: isLoadingProfile } = useGetMyProfileQuery();
+  const { data: profileData, isLoading: isLoadingProfile } =
+    useGetMyProfileQuery();
 
   // Mutation to select/update shift
   const [selectshift, { isLoading: isSaving }] = useShiftselectMutation();
@@ -46,7 +47,10 @@ const ShiftSelection = () => {
   // Pre-select the user's currently saved shift on mount
   useEffect(() => {
     const savedShift = profileData?.data?.user?.shiftType;
-    if (savedShift && ["fixed_night", "rotating", "early_morning"].includes(savedShift)) {
+    if (
+      savedShift &&
+      ["fixed_night", "rotating", "early_morning"].includes(savedShift)
+    ) {
       setSelected(savedShift as ShiftType);
     }
   }, [profileData]);
@@ -72,7 +76,9 @@ const ShiftSelection = () => {
         alert("Unable to update shift selection. Please try again.");
       }
     } catch (err: any) {
-      alert(err?.data?.message || "An error occurred while saving your selection.");
+      alert(
+        err?.data?.message || "An error occurred while saving your selection.",
+      );
     }
   };
 
@@ -121,7 +127,10 @@ const ShiftSelection = () => {
         {/* Downstream Impact List */}
         <View className="mb-3 pl-1">
           {impactDetails.map((detail, idx) => (
-            <Text key={idx} className="text-xs font-JosefinSansRegular text-[#A5B4FC] mb-1">
+            <Text
+              key={idx}
+              className="text-xs font-JosefinSansRegular text-[#A5B4FC] mb-1"
+            >
               • {detail}
             </Text>
           ))}
@@ -156,87 +165,89 @@ const ShiftSelection = () => {
   return (
     <GradientBackground>
       <SafeAreaView className="flex-1 px-5">
-        {/* Header */}
-        <View className="mt-6 mb-6 relative">
-          {isEditMode && (
-            <TouchableOpacity
-              disabled={isSaving}
-              onPress={() => router.back()}
-              className="w-10 h-10 bg-white/10 rounded-full justify-center items-center backdrop-blur-sm border border-white/20 absolute left-0 top-0 z-10"
-              activeOpacity={0.7}
-            >
-              <FontAwesome6 name="arrow-left" size={16} color="#A5B4FC" />
-            </TouchableOpacity>
-          )}
+        <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+          {/* Header */}
+          <View className="mt-6 mb-6 relative">
+            {isEditMode && (
+              <TouchableOpacity
+                disabled={isSaving}
+                onPress={() => router.back()}
+                className="w-10 h-10 bg-white/10 rounded-full justify-center items-center backdrop-blur-sm border border-white/20 absolute left-0 top-0 z-10"
+                activeOpacity={0.7}
+              >
+                <FontAwesome6 name="arrow-left" size={16} color="#A5B4FC" />
+              </TouchableOpacity>
+            )}
 
-          <Text className="text-white text-2xl font-JosefinSansMedium text-center">
-            {isEditMode ? "Update Work Schedule" : "Shift Selection"}
-          </Text>
-          <Text className="text-white/60 text-base font-JosefinSansRegular text-center mt-1">
-            {isEditMode
-              ? "Modify shift configurations & recalculate plan"
-              : "Select your main work schedule"}
-          </Text>
-        </View>
-
-        {/* Cards */}
-        <ShiftCard
-          id="fixed_night"
-          title="Fixed Nights"
-          description="Consistent overnight schedule, usually 10pm–6am."
-          impactDetails={[
-            "Shifts sleep advice & overnight routines",
-            "Alters meal timing rules & workout windows",
-            "Adjusts circadian alignment parameters",
-          ]}
-          tags={["Sleep", "Workout", "Recovery"]}
-          icon={mooncloud}
-        />
-
-        <ShiftCard
-          id="rotating"
-          title="Rotating Shifts"
-          description="Schedule changes weekly or bi-weekly."
-          impactDetails={[
-            "Triggers weekly calendar schedule adjustments",
-            "Modifies pre-shift meal timing rules",
-            "Adapts recovery prompts and sleep suggestions",
-          ]}
-          tags={["Sleep", "Workout", "Recovery", "Calendar"]}
-          icon={moonsun}
-        />
-
-        <ShiftCard
-          id="early_morning"
-          title="Early Mornings"
-          description="Starting before 6am, early wake times."
-          impactDetails={[
-            "Establishes early morning sleep & wake timings",
-            "Alters breakfast rules & workout windows",
-            "Triggers early recovery notifications",
-          ]}
-          tags={["Sleep", "Workout", "Calendar"]}
-          icon={suncloud}
-        />
-
-        {/* Continue / Save Button */}
-        <View className="mt-auto mb-6">
-          <TouchableOpacity
-            disabled={!selected || isSaving}
-            onPress={handleSelectShift}
-            className={`h-14 rounded-full items-center justify-center ${
-              selected && !isSaving ? "bg-[#AFA4FF]" : "bg-white/20"
-            }`}
-          >
-            <Text className="text-black font-JosefinSansMedium">
-              {isSaving
-                ? "Saving & Recalculating..."
-                : isEditMode
-                ? "Save & Recalculate Plan"
-                : "Continue"}
+            <Text className="text-white text-2xl font-JosefinSansMedium text-center">
+              {isEditMode ? "Update Work Schedule" : "Shift Selection"}
             </Text>
-          </TouchableOpacity>
-        </View>
+            <Text className="text-white/60 text-base font-JosefinSansRegular text-center mt-1">
+              {isEditMode
+                ? "Modify shift configurations & recalculate plan"
+                : "Select your main work schedule"}
+            </Text>
+          </View>
+
+          {/* Cards */}
+          <ShiftCard
+            id="fixed_night"
+            title="Fixed Nights"
+            description="Consistent overnight schedule, usually 10pm–6am."
+            impactDetails={[
+              "Shifts sleep advice & overnight routines",
+              "Alters meal timing rules & workout windows",
+              "Adjusts circadian alignment parameters",
+            ]}
+            tags={["Sleep", "Workout", "Recovery"]}
+            icon={mooncloud}
+          />
+
+          <ShiftCard
+            id="rotating"
+            title="Rotating Shifts"
+            description="Schedule changes weekly or bi-weekly."
+            impactDetails={[
+              "Triggers weekly calendar schedule adjustments",
+              "Modifies pre-shift meal timing rules",
+              "Adapts recovery prompts and sleep suggestions",
+            ]}
+            tags={["Sleep", "Workout", "Recovery", "Calendar"]}
+            icon={moonsun}
+          />
+
+          <ShiftCard
+            id="early_morning"
+            title="Early Mornings"
+            description="Starting before 6am, early wake times."
+            impactDetails={[
+              "Establishes early morning sleep & wake timings",
+              "Alters breakfast rules & workout windows",
+              "Triggers early recovery notifications",
+            ]}
+            tags={["Sleep", "Workout", "Calendar"]}
+            icon={suncloud}
+          />
+
+          {/* Continue / Save Button */}
+          <View className="mt-auto mb-6">
+            <TouchableOpacity
+              disabled={!selected || isSaving}
+              onPress={handleSelectShift}
+              className={`h-14 rounded-full items-center justify-center ${
+                selected && !isSaving ? "bg-[#AFA4FF]" : "bg-white/20"
+              }`}
+            >
+              <Text className="text-black font-JosefinSansMedium">
+                {isSaving
+                  ? "Saving & Recalculating..."
+                  : isEditMode
+                    ? "Save & Recalculate Plan"
+                    : "Continue"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
       </SafeAreaView>
     </GradientBackground>
   );
